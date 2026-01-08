@@ -22,6 +22,15 @@ def card_to_str(rank: int, suit: int) -> str:
     suit_name = SUITS[suit] if 0 <= suit < 4 else f"Suit{ suit }"
     return f"{rr} of {suit_name}"
 
+def ask_decision_once() -> str:
+    while True:
+        d = input("Hit or stand? ").strip().lower()
+        if d in ("hit", "h"):
+            return "Hit"
+        if d in ("stand", "s"):
+            return "Stand"
+        print("Please type 'hit' or 'stand'.")
+
 def main():
     client_name_32 = clamp_team_name(CLIENT_NAME, 32)
 
@@ -51,8 +60,10 @@ def main():
             wins = 0
             finished_rounds = 0
 
-            # The protocol is streaming: server sends card updates + final result per round.
-            # We play until we receive {rounds} final results.
+            # When True: we are allowed to ask the user for a decision.
+            # When False: we already stood; wait for round result.
+            need_decision = True
+
             while finished_rounds < rounds:
                 msg = recv_server_payload(tcp)
                 if not msg:
@@ -63,19 +74,18 @@ def main():
                 print(f"Card: {card_to_str(rank, suit)}")
 
                 if result == RESULT_NOT_OVER:
-                    # Ask decision from user
-                    while True:
-                        d = input("Hit or stand? ").strip().lower()
-                        if d in ("hit", "h"):
-                            send_decision(tcp, "Hit")
-                            break
-                        if d in ("stand", "s"):
-                            send_decision(tcp, "Stand")
-                            break
-                        print("Please type 'hit' or 'stand'.")
+                    if need_decision:
+                        decision = ask_decision_once()
+                        send_decision(tcp, decision)
+                        if decision == "Stand":
+                            need_decision = False
+                    else:
+                        # We already stood; ignore intermediate dealer updates
+                        pass
                 else:
-                    # Round ended
                     finished_rounds += 1
+                    need_decision = True  # new round starts with a decision again
+
                     if result == RESULT_WIN:
                         print("Round result: WIN\n")
                         wins += 1
