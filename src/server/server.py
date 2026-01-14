@@ -22,6 +22,7 @@ SUITS = ["Heart", "Diamond", "Club", "Spade"]
 SERVER_NAME = "Blackijecky"
 UDP_PORT = 13122
 TCP_BACKLOG = 50
+TCP_PORT = 2050
 
 
 # ---------- Game ----------
@@ -285,7 +286,7 @@ def handle_client(conn: socket.socket, addr):
 def main():
     tcp_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     tcp_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    tcp_sock.bind(("0.0.0.0", 0))
+    tcp_sock.bind(("0.0.0.0", TCP_PORT))
     tcp_sock.listen(TCP_BACKLOG)
 
     tcp_sock.settimeout(1.0)  # ✅ accept מתעורר כל שנייה
