@@ -133,8 +133,13 @@ class OfferBroadcaster(threading.Thread):
         self.name = name
         self.interval = interval_sec
         self._stop = threading.Event()
+        
+        WIFI_IP = "172.18.37.38"  
+
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        self.sock.bind((WIFI_IP, 0))  
+
 
     def run(self):
         pkt = pack_offer(self.tcp_port, self.name)
