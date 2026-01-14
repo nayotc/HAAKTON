@@ -187,7 +187,7 @@ def handle_client(conn: socket.socket, addr):
             send_card_update(conn, RESULT_NOT_OVER, player[1])
             send_card_update(conn, RESULT_NOT_OVER, dealer[0])
 
-            # ✅ 21 on initial deal => immediate win
+            #  21 on initial deal => immediate win
             psum = total(player)
             if psum == 21:
                 print("Player hits 21 on initial deal -> Player wins")
@@ -228,7 +228,7 @@ def handle_client(conn: socket.socket, addr):
                 print(f"Player draws: {card_str(c)} (new sum={psum})")
                 send_card_update(conn, RESULT_NOT_OVER, c)
 
-                # ✅ 21 after hit => immediate win
+                # 21 after hit => immediate win
                 if psum == 21:
                     print("Player hits 21 -> Player wins")
                     wins += 1
@@ -288,6 +288,8 @@ def main():
     tcp_sock.bind(("0.0.0.0", 0))
     tcp_sock.listen(TCP_BACKLOG)
 
+    tcp_sock.settimeout(1.0)  # ✅ accept מתעורר כל שנייה
+
     tcp_port = tcp_sock.getsockname()[1]
     print(f"Server started, listening on TCP port {tcp_port}")
 
@@ -297,11 +299,22 @@ def main():
 
     try:
         while True:
-            conn, addr = tcp_sock.accept()
+            try:
+                conn, addr = tcp_sock.accept()
+            except socket.timeout:
+                # אין לקוחות כרגע -> חוזרים ללולאה (מאפשר Ctrl+C)
+                continue
+            except OSError:
+                # socket נסגר בזמן shutdown -> יוצאים נקי
+                break
+
             threading.Thread(target=handle_client, args=(conn, addr), daemon=True).start()
+
     except KeyboardInterrupt:
         print("\nShutting down...")
+
     finally:
+        # קודם מפסיקים broadcast ואז סוגרים TCP
         try:
             bc.stop()
         except Exception:
