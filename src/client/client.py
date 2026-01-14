@@ -28,6 +28,13 @@ def card_to_str(rank: int, suit: int) -> str:
     suit_name = SUITS[suit] if 0 <= suit < 4 else f"Suit{suit}"
     return f"{rr} of {suit_name}"
 
+def get_local_ip_for_udp() -> str:
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        s.connect(("8.8.8.8", 80))
+        return s.getsockname()[0]
+    finally:
+        s.close()
 
 def card_value(rank: int) -> int:
     if rank == 1:
@@ -100,10 +107,14 @@ def ask_decision_once() -> str:
         print("Please type 'hit' or 'stand'.")
 
 
+TARGET_SERVER = "Blackijecky"
+
 def wait_for_offer(timeout_sec: float = 10.0):
     udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     udp.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    udp.bind(("", UDP_PORT))
+
+    local_ip = get_local_ip_for_udp()
+    udp.bind((local_ip, UDP_PORT))
     udp.settimeout(timeout_sec)
 
     try:
@@ -112,6 +123,8 @@ def wait_for_offer(timeout_sec: float = 10.0):
             offer = unpack_offer(data)
             if offer:
                 port, name = offer
+                if name != TARGET_SERVER:
+                    continue  # 👈 מתעלמים משרתים אחרים
                 return ip, port, name
     except socket.timeout:
         return None

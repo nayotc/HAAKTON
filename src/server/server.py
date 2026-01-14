@@ -138,7 +138,10 @@ class OfferBroadcaster(threading.Thread):
 
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        self.sock.bind((WIFI_IP, 0))  
+
+        wifi_ip = get_local_ip_for_udp()
+        self.sock.bind((wifi_ip, 0))
+        print(f"[UDP] Broadcasting from interface IP: {wifi_ip}")
 
 
     def run(self):
@@ -156,6 +159,14 @@ class OfferBroadcaster(threading.Thread):
             self.sock.close()
         except Exception:
             pass
+def get_local_ip_for_udp() -> str:
+    # פותח "חיבור" UDP פיקטיבי כדי שהמערכת תבחר את היציאה הנכונה (Wi-Fi)
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        s.connect(("8.8.8.8", 80))  # לא באמת שולח, רק גורם ל-OS לבחור interface
+        return s.getsockname()[0]
+    finally:
+        s.close()
 
 
 # ---------- Server game session ----------
